@@ -52,13 +52,57 @@ NAN_METHOD(GetArgFromJS) {
   }
 }
 
+// Demonstrates how to deal with JavaScript array passed into C++
+NAN_METHOD(ConsumeArrayFromJS) {
+  if (info.Length() == 1 && info[0]->IsArray()) {
+    v8::Local<v8::Array> array = v8::Local<v8::Array>::Cast(info[0]);
+    int len = array->Length();
+    printf("Array came from JavaScript with length=%d; ", len);
+
+    for ( int i = 0 ; i < len ; ++ i ) {
+      // Yep, this `Get()` function is how to extract an element from an array
+      auto elem = array->Get(i);
+      if (elem->IsString()) {
+        v8::String::Utf8Value value(elem);
+        std::string str(*value);
+        printf("%d=%s, ", i, str.c_str());
+      }
+    }
+    printf("\n");
+  } else {
+    printf("Usage: consumeArrayFromJS(['str1', 'str2', '...'])\n");
+  }
+}
+
+// Get an object from JavaScript and use the member of the object in C++
+NAN_METHOD(ExtractMemberInObject) {
+  if (info.Length() == 1 && info[0]->IsObject()) {
+    auto object = info[0]->ToObject();
+    // We can use `Get()` with a name as the argument to get members from an object
+    auto pi = object->Get(Nan::New("piValue").ToLocalChecked());
+    if (pi->IsNumber()) {
+      printf("object.piValue=%lf\n", pi->NumberValue());
+    }
+    //auto func = object->Get(Nan::New("saySomething").ToLocalChecked());
+  } else {
+    printf("Usage: extractMemberInObject({xxx: <value1>, yyy: <value2>, ...})\n");
+  }
+}
 
 
-
-
-
-
-
+NAN_METHOD(InvokeJSFunc) {
+  if (info.Length() == 1 && info[0]->IsFunction()) {
+    auto func = v8::Local<v8::Function>::Cast(info[0]);
+    const int argc = 2;
+    v8::Local<v8::Value> argv[argc] = {
+      Nan::New("C++").ToLocalChecked(),
+      Nan::New(2.71828182845904523536d) // It's not an integer, so what?
+    };
+    func->Call(info.This(), argc, argv);
+  } else {
+    printf("Usage: invokeJSFunc(function(str, int){})\n");
+  }
+}
 
 
 
@@ -268,6 +312,9 @@ void initModule(v8::Local<v8::Object> exports) {
   Nan::Export(exports, "returnValueToJS", ReturnValueToJS);
   Nan::Export(exports, "returnObjectToJS", ReturnObjectToJS);
   Nan::Export(exports, "getArgFromJS", GetArgFromJS);
+  Nan::Export(exports, "consumeArrayFromJS", ConsumeArrayFromJS);
+  Nan::Export(exports, "extractMemberInObject", ExtractMemberInObject);
+  Nan::Export(exports, "invokeJSFunc", InvokeJSFunc);
 
   NODE_SET_METHOD(exports, "helloWorldPromise", HelloWorldPromise);
 
