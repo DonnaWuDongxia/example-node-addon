@@ -7,7 +7,7 @@ console.log(addon.returnValueToJS());
 
 console.log(addon.returnObjectToJS());
 
-addon.getArgFromJS("Double quote is my favorite, what're you gonna do? Bite me?");
+addon.getArgFromJS("Double quote is my favorite, what''''''re you gonna do? Bite me?");
 
 addon.consumeArrayFromJS(['Apple', 'Tangerine', 'Durian', 'Venus fly trap']);
 

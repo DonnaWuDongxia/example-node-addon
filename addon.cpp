@@ -89,7 +89,7 @@ NAN_METHOD(ExtractMemberInObject) {
   }
 }
 
-
+// Demonstrate how to invoke a JavaScript function inside C++
 NAN_METHOD(InvokeJSFunc) {
   if (info.Length() == 1 && info[0]->IsFunction()) {
     auto func = v8::Local<v8::Function>::Cast(info[0]);
@@ -104,7 +104,10 @@ NAN_METHOD(InvokeJSFunc) {
   }
 }
 
-
+// Advanced topics
+NAN_METHOD(returnPromiseToJS) {
+  
+}
 
 
 
