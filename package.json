@@ -1,0 +1,16 @@
+{
+  "name": "example",
+  "version": "0.0.1",
+  "description": "Example for node addon",
+  "main": "main.js",
+  "repository": {},
+  "scripts": {},
+  "contributors": [
+    "Kenny Yuan <kaining.yuan@intel.com> (https://github.com/kenny-y)"
+  ],
+  "devDependencies": {},
+  "license": "MIT",
+  "dependencies": {
+    "nan": "^2.3.3"
+  }
+}
