@@ -153,35 +153,6 @@ NAN_METHOD(WaitInCpp) {
   info.GetReturnValue().Set(resolver->GetPromise());
 }
 
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-void HelloWorldPromise(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	v8::Isolate* isolate = args.GetIsolate();
-	//auto promise = Promise::Resolver::New(isolate);
-	v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(isolate);
-	auto promise = resolver->GetPromise();
-	//args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, "Hello from librealsense"));
-	args.GetReturnValue().Set(promise);
-
-  // // Test directly resolve/reject
-	// resolver->Resolve(v8::String::NewFromUtf8(isolate, "Hello from librealsense"));
-	// resolver->Reject(v8::String::NewFromUtf8(isolate, "Exception from librealsense"));
-}
-
-
-// Promise returned function
-
-
-
-
-
-
-
 class MyObject : public Nan::ObjectWrap {
  public:
   static void Init(v8::Local<v8::Object> exports);
@@ -191,17 +162,14 @@ class MyObject : public Nan::ObjectWrap {
   ~MyObject();
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
-  static void StartThread(const Nan::FunctionCallbackInfo<v8::Value>& info);
-  static void StopThread(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void Foo(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   static Nan::Persistent<v8::Function> constructor;
 };
 
-
 Nan::Persistent<v8::Function> MyObject::constructor;
 
-MyObject::MyObject()
-{
+MyObject::MyObject() {
 }
 
 MyObject::~MyObject() {
@@ -215,9 +183,8 @@ void MyObject::Init(v8::Local<v8::Object> exports) {
   tpl->SetClassName(Nan::New("MyObject").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  // Prototype
-  Nan::SetPrototypeMethod(tpl, "start", StartThread);
-  Nan::SetPrototypeMethod(tpl, "stop", StopThread);
+  // Prototype method
+  Nan::SetPrototypeMethod(tpl, "foo", Foo);
 
   constructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("MyObject").ToLocalChecked(), tpl->GetFunction());
@@ -239,84 +206,8 @@ void MyObject::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
 }
 
-
-
-static uv_thread_t thread_id;
-static uv_async_t async;
-static uv_mutex_t mutex;
-// Nan::Persistent<v8::Function> startCallback;
-Nan::Persistent<v8::Object> thisObject;
-bool running = true;
-
-// A event handler which will act on the uvasync_t event on the v8 main thread:
-void handle_async_send(uv_async_t *handle) {
-  int counter = reinterpret_cast<unsigned long>(handle->data);
-  Nan::HandleScope scope;
-
-  const int argc = 2;
-  v8::Local<v8::Value> argv[argc] = {
-    Nan::New("assOnFire").ToLocalChecked(),
-    Nan::New(counter)
-  };
-
-  v8::Local<v8::Object> localThisObject = Nan::New(thisObject);
-
-  Nan::MakeCallback(localThisObject, "emit", argc, argv);
-}
-
-static void thread_main(void* arg) {
-  printf("Log from C++: worker thread started\n");
-
-  async.data = nullptr;
-  uv_async_send(&async);
-
-  while (running)
-  {
-      // That wasn't really that long of an operation, so lets pretend it took longer...
-      // Not available on Mac
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-      // sleep(1);
-
-      unsigned long counter = reinterpret_cast<unsigned long>(async.data);
-      ++ counter;
-      async.data = reinterpret_cast<void*>(counter);
-
-      uv_async_send(&async);
-  }
-
-  printf("Log from C++: worker thread ends.\n");
-}
-
-// void StartThread (const v8::FunctionCallbackInfo<v8::Value>& info) {
-NAN_METHOD(MyObject::StartThread) {
-  Nan::HandleScope scope;
-
-  // startCallback.Reset(info[0].As<v8::Function>());
-  thisObject.Reset(info.This());
-
-  uv_async_init(uv_default_loop(), &async, handle_async_send);
-
-  uv_thread_create(&thread_id, thread_main, NULL);
-
-  uv_mutex_init(&mutex);
-
-  info.GetReturnValue().Set(Nan::Undefined());
-}
-
-// void StopThread (const v8::FunctionCallbackInfo<v8::Value>& info) {
-NAN_METHOD(MyObject::StopThread) {
-  Nan::HandleScope scope;
-  // v8::Local<v8::Function> callbackHandle = info[0].As<v8::Function>();
-
-  running = false;
-  uv_thread_join(&thread_id);
-
-  uv_mutex_destroy(&mutex);
-
-  uv_close((uv_handle_t*) &async, NULL);
-
-  // NanMakeCallback(NanGetCurrentContext()->Global(), callbackHandle, 0, NULL);
-  info.GetReturnValue().Set(Nan::Undefined());
+NAN_METHOD(MyObject::Foo) {
+  info.GetReturnValue().Set(Nan::New("I am Thor, son of Odin, and as long as there's life in my breast... I'm running out of things to say").ToLocalChecked());
 }
 
 void initModule(v8::Local<v8::Object> exports) {

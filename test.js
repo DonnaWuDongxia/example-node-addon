@@ -42,3 +42,6 @@ addon.waitInCpp(5000)
     clearInterval(timer);
 });
 
+var obj = new addon.MyObject();
+console.log(obj + ", " + obj.foo());
+
