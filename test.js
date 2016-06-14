@@ -22,3 +22,23 @@ addon.invokeJSFunc(function(str, int){
 	console.log("I've got arguments from C++, str='" + str + "', int=" + int);
 })
 
+addon.returnPromiseToJS()
+.then(state=>{
+	console.log("Promise Resolved:" + state);
+
+})
+.catch(error => {
+	console.log("Promise Rejected:" + error);
+});
+
+
+var start = Date.now();
+var timer = setInterval(function () {
+    console.log("Tic-Tock");
+}, 1000);
+addon.waitInCpp(5000)
+.then((value) => {
+    console.log(`After ${Date.now() - start}ms: the promise is resolved with value: ${value}`);
+    clearInterval(timer);
+});
+

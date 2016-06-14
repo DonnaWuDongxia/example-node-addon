@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <chrono>
 #include <tuple>
+#include <random>
 
 // Show nothing else but a function can be invoked by JavaScript
 /*
@@ -105,17 +106,57 @@ NAN_METHOD(InvokeJSFunc) {
 }
 
 // Advanced topics
-NAN_METHOD(returnPromiseToJS) {
+NAN_METHOD(ReturnPromiseToJS) {
+  v8::Isolate* isolate = info.GetIsolate();
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(isolate);
+  info.GetReturnValue().Set(resolver->GetPromise());
+
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_real_distribution<double> dist(0, 100.0);
+  if ( dist(mt) < 50 ) {
+    resolver->Resolve(Nan::New("resolved by C++").ToLocalChecked());
+  } else {
+    resolver->Reject(Nan::New("rejected by C++").ToLocalChecked());
+  }
+}
+
+NAN_METHOD(WaitInCpp) {
+  using ResolverPersistent = Nan::Persistent<v8::Promise::Resolver>;
+
+  auto period = Nan::To<unsigned>(info[0]).FromJust(); // In ms
+  auto resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  auto persistent = new ResolverPersistent(resolver);
+
+  uv_timer_t* handle = new uv_timer_t;
+  handle->data = persistent;
+  uv_timer_init(uv_default_loop(), handle);
+
+  // use capture-less lambda for c-callback
+  auto timercb = [](uv_timer_t* handle) -> void {
+    Nan::HandleScope scope;
+
+    auto persistent = static_cast<ResolverPersistent*>(handle->data);
+    
+    uv_timer_stop(handle);
+    uv_close(reinterpret_cast<uv_handle_t*>(handle),
+             [](uv_handle_t* handle) -> void {delete handle;});
   
+    auto resolver = Nan::New(*persistent);
+    resolver->Resolve(Nan::New("'C++ Resolved String Value'").ToLocalChecked());
+
+    persistent->Reset();
+    delete persistent;
+  };
+  uv_timer_start(handle, timercb, period, 0);
+
+  info.GetReturnValue().Set(resolver->GetPromise());
 }
 
 
 
 
-
-
-
-
+////////////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -134,38 +175,7 @@ void HelloWorldPromise(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 
 // Promise returned function
-NAN_METHOD(Wait) {
-  using ResolverPersistent = Nan::Persistent<v8::Promise::Resolver>;
 
-  auto ms = Nan::To<unsigned>(info[0]).FromJust();
-  auto resolver = v8::Promise::Resolver::New(info.GetIsolate());
-  auto promise = resolver->GetPromise();
-  auto persistent = new ResolverPersistent(resolver);
-
-  uv_timer_t* handle = new uv_timer_t;
-  handle->data = persistent;
-  uv_timer_init(uv_default_loop(), handle);
-
-  // use capture-less lambda for c-callback
-  auto timercb = [](uv_timer_t* handle) -> void {
-    Nan::HandleScope scope;
-
-    auto persistent = static_cast<ResolverPersistent*>(handle->data);
-    
-    // uv_timer_stop(handle);
-    // uv_close(reinterpret_cast<uv_handle_t*>(handle),
-    //          [](uv_handle_t* handle) -> void {delete handle;});
-  
-    auto resolver = Nan::New(*persistent);
-    resolver->Resolve(Nan::New("'C++ Resolved String Value'").ToLocalChecked());
-
-    persistent->Reset();
-    delete persistent;
-  };
-  uv_timer_start(handle, timercb, ms, 0);
-
-  info.GetReturnValue().Set(promise);
-}
 
 
 
@@ -310,7 +320,6 @@ NAN_METHOD(MyObject::StopThread) {
 }
 
 void initModule(v8::Local<v8::Object> exports) {
-  Nan::Export(exports, "wait", Wait);
   Nan::Export(exports, "helloWorld", HelloWorld);
   Nan::Export(exports, "returnValueToJS", ReturnValueToJS);
   Nan::Export(exports, "returnObjectToJS", ReturnObjectToJS);
@@ -318,8 +327,8 @@ void initModule(v8::Local<v8::Object> exports) {
   Nan::Export(exports, "consumeArrayFromJS", ConsumeArrayFromJS);
   Nan::Export(exports, "extractMemberInObject", ExtractMemberInObject);
   Nan::Export(exports, "invokeJSFunc", InvokeJSFunc);
-
-  NODE_SET_METHOD(exports, "helloWorldPromise", HelloWorldPromise);
+  Nan::Export(exports, "returnPromiseToJS", ReturnPromiseToJS);
+  Nan::Export(exports, "waitInCpp", WaitInCpp);
 
   MyObject::Init(exports);
 }
