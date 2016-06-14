@@ -43,5 +43,5 @@ addon.waitInCpp(5000)
 });
 
 var obj = new addon.MyObject();
-console.log(obj + ", " + obj.foo());
+console.log(obj + ": " + obj.foo());
 

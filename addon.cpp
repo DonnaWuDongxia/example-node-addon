@@ -163,6 +163,7 @@ class MyObject : public Nan::ObjectWrap {
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void Foo(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void ToString(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   static Nan::Persistent<v8::Function> constructor;
 };
@@ -185,6 +186,7 @@ void MyObject::Init(v8::Local<v8::Object> exports) {
 
   // Prototype method
   Nan::SetPrototypeMethod(tpl, "foo", Foo);
+  Nan::SetPrototypeMethod(tpl, "toString", ToString);
 
   constructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("MyObject").ToLocalChecked(), tpl->GetFunction());
@@ -208,6 +210,10 @@ void MyObject::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
 NAN_METHOD(MyObject::Foo) {
   info.GetReturnValue().Set(Nan::New("I am Thor, son of Odin, and as long as there's life in my breast... I'm running out of things to say").ToLocalChecked());
+}
+
+NAN_METHOD(MyObject::ToString) {
+  info.GetReturnValue().Set(Nan::New("[object myObject numberOfStones=4]").ToLocalChecked());
 }
 
 void initModule(v8::Local<v8::Object> exports) {
