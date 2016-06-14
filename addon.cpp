@@ -164,13 +164,19 @@ class MyObject : public Nan::ObjectWrap {
   static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void Foo(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void ToString(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static NAN_GETTER(XGetter);
+  static NAN_SETTER(XSetter);
 
   static Nan::Persistent<v8::Function> constructor;
+
+ private:
+  double value_;
 };
 
 Nan::Persistent<v8::Function> MyObject::constructor;
 
 MyObject::MyObject() {
+  value_ = 2.3333333;
 }
 
 MyObject::~MyObject() {
@@ -187,6 +193,7 @@ void MyObject::Init(v8::Local<v8::Object> exports) {
   // Prototype method
   Nan::SetPrototypeMethod(tpl, "foo", Foo);
   Nan::SetPrototypeMethod(tpl, "toString", ToString);
+  Nan::SetAccessor(tpl->InstanceTemplate(), Nan::New("x").ToLocalChecked(), XGetter, XSetter);
 
   constructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("MyObject").ToLocalChecked(), tpl->GetFunction());
@@ -205,6 +212,20 @@ void MyObject::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
     v8::Local<v8::Value> argv[argc] = { info[0] };
     v8::Local<v8::Function> cons = Nan::New<v8::Function>(constructor);
     info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  }
+}
+
+NAN_GETTER(MyObject::XGetter) {
+  // property, info
+  auto myself = ObjectWrap::Unwrap<MyObject>(info.Holder());
+  info.GetReturnValue().Set(Nan::New(myself->value_));
+}
+
+NAN_SETTER(MyObject::XSetter) {
+  // property, value, info
+  auto myself = ObjectWrap::Unwrap<MyObject>(info.Holder());
+  if (value->IsNumber()) {
+    myself->value_ = value->NumberValue();
   }
 }
 

@@ -45,3 +45,7 @@ addon.waitInCpp(5000)
 var obj = new addon.MyObject();
 console.log(obj + ": " + obj.foo());
 
+console.log("value from getter: " + obj.x);
+obj.x = 87.444444;
+console.log("value after setter: " + obj.x);
+
